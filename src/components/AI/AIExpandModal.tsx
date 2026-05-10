@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
-import { Input } from '@/components/UI/Input';
-import { useMindMapStore } from '@/lib/store';
-import { AI_CONFIGS } from '@/lib/ai-config';
+import { AI_CONFIGS, MODEL_OPTIONS } from '@/lib/ai-config';
 import { AIModel } from '@/lib/types';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { useMindMapStore } from '@/lib/store';
+import { Sparkles, Loader2, ChevronDown } from 'lucide-react';
 import { findNodeById } from '@/lib/utils';
 
 interface AIExpandModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExpand: (nodeId: string, count: number, model: AIModel) => Promise<void>;
+  onExpand: (nodeId: string, count: number, model: AIModel, customModel?: string) => Promise<void>;
 }
 
 export const AIExpandModal = ({
@@ -22,10 +21,12 @@ export const AIExpandModal = ({
   onExpand,
 }: AIExpandModalProps) => {
   const [count, setCount] = useState(4);
-  const [selectedModel, setSelectedModel] = useState<AIModel>('openai');
+  const [selectedProvider, setSelectedProvider] = useState<AIModel>('deepseek');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [isExpanding, setIsExpanding] = useState(false);
   const { currentMindMap, selectedNodeId } = useMindMapStore();
 
+  const modelOptions = MODEL_OPTIONS[selectedProvider] || [];
   const selectedNode = selectedNodeId && currentMindMap
     ? findNodeById(currentMindMap.nodes, selectedNodeId)
     : null;
@@ -35,7 +36,7 @@ export const AIExpandModal = ({
 
     setIsExpanding(true);
     try {
-      await onExpand(selectedNodeId, count, selectedModel);
+      await onExpand(selectedNodeId, count, selectedProvider, selectedModel || undefined);
       onClose();
     } catch (err) {
       console.error('扩展失败', err);
@@ -45,7 +46,7 @@ export const AIExpandModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="AI 扩展节点" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="AI 扩展节点" size="lg">
       <div className="space-y-6">
         {selectedNode && (
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
@@ -75,27 +76,27 @@ export const AIExpandModal = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            选择AI模型
+            选择AI提供商
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Object.entries(AI_CONFIGS).map(([key, config]) => (
               <button
                 key={key}
-                onClick={() => setSelectedModel(key as AIModel)}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedModel === key
+                onClick={() => {
+                  setSelectedProvider(key as AIModel);
+                  setSelectedModel('');
+                }}
+                className={`p-4 rounded-xl border-2 transition-all text-left ${
+                  selectedProvider === key
                     ? 'border-blue-500 bg-blue-50 shadow-md'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{config.icon}</span>
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{config.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 text-xs truncate">
                       {config.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {config.description}
                     </div>
                   </div>
                 </div>
@@ -103,6 +104,29 @@ export const AIExpandModal = ({
             ))}
           </div>
         </div>
+
+        {modelOptions.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              选择具体模型
+            </label>
+            <div className="relative">
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+              >
+                <option value="">使用默认模型</option>
+                {modelOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name} - {option.description}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose} disabled={isExpanding}>

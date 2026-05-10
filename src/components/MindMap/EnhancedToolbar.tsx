@@ -74,15 +74,18 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
     setIsEditingTitle(false);
   };
 
-  const handleAIGenerate = async (topic: string, model: any) => {
+  const handleAIGenerate = async (topic: string, model: any, customModel?: string) => {
     saveToHistory();
     const response = await fetch('/api/ai/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, model }),
+      body: JSON.stringify({ topic, model, customModel }),
     });
 
-    if (!response.ok) throw new Error('生成失败');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || '生成失败');
+    }
 
     const data = await response.json();
     if (data.nodes && currentMindMap) {
@@ -97,7 +100,7 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
     }
   };
 
-  const handleAIExpand = async (nodeId: string, count: number, model: any) => {
+  const handleAIExpand = async (nodeId: string, count: number, model: any, customModel?: string) => {
     saveToHistory();
     const findNode = (nodes: any[]): any => {
       for (const node of nodes) {
@@ -116,10 +119,13 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
     const response = await fetch('/api/ai/expand', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodeText: node.text, count, model }),
+      body: JSON.stringify({ nodeText: node.text, count, model, customModel }),
     });
 
-    if (!response.ok) throw new Error('扩展失败');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || '扩展失败');
+    }
 
     const data = await response.json();
     if (data.children) {

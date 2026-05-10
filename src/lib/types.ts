@@ -32,7 +32,14 @@ export interface MindMapSettings {
 
 export type ThemeColor = 'default' | 'ocean' | 'forest' | 'sunset' | 'berry';
 
-export type AIModel = 'openai' | 'anthropic';
+export type AIModel = 
+  | 'openai' 
+  | 'anthropic' 
+  | 'deepseek' 
+  | 'zhipu' 
+  | 'qwen' 
+  | 'kimi' 
+  | 'siliconflow';
 
 export interface AIRequest {
   topic?: string;
