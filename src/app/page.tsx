@@ -24,7 +24,7 @@ export default function HomePage() {
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">AI XMind</h1>
+                <h1 className="text-xl font-bold text-gray-900">Mindskill</h1>
                 <p className="text-xs text-gray-500">智能思维导图工具</p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function HomePage() {
         <section className="mt-16">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-12 text-white">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">为什么选择AI XMind?</h2>
+              <h2 className="text-3xl font-bold mb-4">为什么选择Mindskill?</h2>
               <p className="text-xl text-blue-100 mb-8">
                 比XMind更强大，更智能，更易用
               </p>

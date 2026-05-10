@@ -286,7 +286,7 @@ export const useMindMapStore = create<MindMapState>()(
       },
     }),
     {
-      name: 'ai-xmind-storage',
+      name: 'mindskill-storage',
       partialize: (state) => ({
         mindMaps: state.mindMaps,
         aiModel: state.aiModel,

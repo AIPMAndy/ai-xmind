@@ -227,7 +227,7 @@ export class XMindParser {
     zip.file('metadata.json', JSON.stringify({
       metadata: {
         creator: {
-          name: 'AI XMind',
+          name: 'Mindskill',
           version: '1.0',
         },
         created: mindMap.createdAt,
