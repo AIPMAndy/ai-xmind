@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -12,18 +12,50 @@ import {
   Connection,
   Edge,
   Node,
+  useReactFlow,
+  ReactFlowProvider,
+  NodeProps,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useMindMapStore } from '@/lib/store';
 import { MindMapNode } from './Node';
-import { MindNode } from '@/lib/types';
+import { MindNode, MindMapSettings } from '@/lib/types';
 import { THEME_COLORS } from '@/lib/ai-config';
+
+interface CustomNodeData {
+  node: MindNode;
+  theme: string;
+}
 
 const nodeTypes = {
   mindMapNode: MindMapNode,
 };
 
-export const Canvas = () => {
+interface LayoutConfig {
+  type: 'horizontal' | 'vertical' | 'radial' | 'tree';
+  horizontalGap: number;
+  verticalGap: number;
+}
+
+const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
+  horizontal: {
+    type: 'horizontal',
+    horizontalGap: 280,
+    verticalGap: 80,
+  },
+  vertical: {
+    type: 'vertical',
+    horizontalGap: 280,
+    verticalGap: 80,
+  },
+  tree: {
+    type: 'horizontal',
+    horizontalGap: 200,
+    verticalGap: 60,
+  },
+};
+
+export const EnhancedCanvas = () => {
   const {
     currentMindMap,
     selectedNodeId,
@@ -33,7 +65,9 @@ export const Canvas = () => {
   } = useMindMapStore();
 
   const theme = currentMindMap?.settings.theme || 'default';
+  const layout = currentMindMap?.settings.layout || 'horizontal';
   const colors = THEME_COLORS[theme as keyof typeof THEME_COLORS] || THEME_COLORS.default;
+  const layoutConfig = LAYOUT_CONFIGS[layout] || LAYOUT_CONFIGS.horizontal;
 
   const convertToFlowNodes = useCallback(
     (
@@ -44,8 +78,9 @@ export const Canvas = () => {
     ): { nodes: Node[]; edges: Edge[] } => {
       const flowNodes: Node[] = [];
       const edges: Edge[] = [];
-      const horizontalGap = level === 0 ? 300 : 200;
-      const verticalGap = 80;
+      
+      const horizontalGap = layoutConfig.horizontalGap - (level * 20);
+      const verticalGap = layoutConfig.verticalGap;
       const totalHeight = nodes.length * verticalGap;
       const startYOffset = y - totalHeight / 2 + verticalGap / 2;
 
@@ -71,20 +106,7 @@ export const Canvas = () => {
           flowNodes.push(...childNodes);
           edges.push(...childEdges);
 
-          const edge: Edge = {
-            id: `e-${node.id}-${node.children[0].id}`,
-            source: node.id,
-            target: node.children[0].id,
-            type: 'smoothstep',
-            style: {
-              stroke: colors.secondary,
-              strokeWidth: 2,
-            },
-            animated: false,
-          };
-          edges.push(edge);
-
-          for (let i = 1; i < node.children.length; i++) {
+          for (let i = 0; i < node.children.length; i++) {
             edges.push({
               id: `e-${node.id}-${node.children[i].id}`,
               source: node.id,
@@ -92,7 +114,7 @@ export const Canvas = () => {
               type: 'smoothstep',
               style: {
                 stroke: colors.secondary,
-                strokeWidth: 2,
+                strokeWidth: 2 - (level * 0.2),
               },
             });
           }
@@ -101,7 +123,7 @@ export const Canvas = () => {
 
       return { nodes: flowNodes, edges };
     },
-    [selectedNodeId, theme, colors]
+    [selectedNodeId, theme, colors, layoutConfig]
   );
 
   const initialData = useMemo(() => {
@@ -144,7 +166,8 @@ export const Canvas = () => {
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent, node: Node) => {
       e.stopPropagation();
-      const newText = prompt('输入新的节点内容:', node.data.node.text);
+      const nodeData = node.data as unknown as CustomNodeData;
+      const newText = prompt('输入新的节点内容:', nodeData?.node?.text);
       if (newText && newText.trim()) {
         updateNode(node.id, newText.trim());
       }
@@ -163,8 +186,33 @@ export const Canvas = () => {
           addNode(selectedNodeId, newText.trim());
         }
       }
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const newText = prompt('输入子节点内容:');
+        if (newText && newText.trim()) {
+          addNode(selectedNodeId, newText.trim());
+        }
+      }
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          const target = e.target as HTMLElement;
+          if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+            const currentMap = useMindMapStore.getState().currentMindMap;
+            if (currentMap?.nodes[0]?.id !== selectedNodeId) {
+              useMindMapStore.getState().deleteNode(selectedNodeId);
+            }
+          }
+        }
+      }
+
+      if (e.key === 'Escape') {
+        setSelectedNode(null);
+      }
     },
-    [selectedNodeId, addNode]
+    [selectedNodeId, addNode, setSelectedNode]
   );
 
   useEffect(() => {
@@ -175,7 +223,14 @@ export const Canvas = () => {
   if (!currentMindMap) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-gray-500">暂无思维导图</p>
+        <div className="text-center">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-gray-500">暂无思维导图</p>
+        </div>
       </div>
     );
   }
@@ -193,12 +248,19 @@ export const Canvas = () => {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.3 }}
         minZoom={0.1}
-        maxZoom={2}
+        maxZoom={2.5}
         proOptions={{ hideAttribution: true }}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          style: { strokeWidth: 2 },
+        }}
       >
-        <Background color="#e5e7eb" gap={20} />
+        <Background 
+          color={layout === 'horizontal' ? '#e5e7eb' : '#d1d5db'} 
+          gap={layout === 'horizontal' ? 20 : 25} 
+        />
         <Controls
           className="!bg-white !shadow-lg !rounded-lg !border !border-gray-200"
           showInteractive={false}
@@ -207,6 +269,9 @@ export const Canvas = () => {
           className="!bg-white !shadow-lg !rounded-lg !border !border-gray-200"
           nodeColor={colors.primary}
           maskColor="rgba(0, 0, 0, 0.1)"
+          style={{
+            borderRadius: '8px',
+          }}
         />
       </ReactFlow>
     </div>

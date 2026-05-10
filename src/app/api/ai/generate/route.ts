@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 import { PROMPTS } from '@/lib/ai-config';
 import { MindNode } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,10 +19,15 @@ export async function POST(request: NextRequest) {
     if (model === 'openai') {
       if (!process.env.OPENAI_API_KEY) {
         return NextResponse.json(
-          { error: '未配置 OpenAI API Key' },
+          { error: '未配置 OpenAI API Key。请在环境变量中设置 OPENAI_API_KEY' },
           { status: 500 }
         );
       }
+
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
 
       const response = await openai.chat.completions.create({
         model: 'gpt-4',
@@ -61,10 +56,15 @@ export async function POST(request: NextRequest) {
     } else if (model === 'anthropic') {
       if (!process.env.ANTHROPIC_API_KEY) {
         return NextResponse.json(
-          { error: '未配置 Anthropic API Key' },
+          { error: '未配置 Anthropic API Key。请在环境变量中设置 ANTHROPIC_API_KEY' },
           { status: 500 }
         );
       }
+
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const anthropic = new Anthropic({
+        apiKey: process.env.ANTHROPIC_API_KEY,
+      });
 
       const response = await anthropic.messages.create({
         model: 'claude-3-sonnet-20240229',
@@ -89,10 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ nodes });
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Generate Error:', error);
     return NextResponse.json(
-      { error: '生成失败，请重试' },
+      { error: error.message || '生成失败，请重试' },
       { status: 500 }
     );
   }

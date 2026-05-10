@@ -3,6 +3,11 @@ import { persist } from 'zustand/middleware';
 import { MindMap, MindNode, MindMapSettings, AIModel } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+interface HistoryState {
+  nodes: MindNode[];
+  timestamp: number;
+}
+
 interface MindMapState {
   mindMaps: MindMap[];
   currentMindMap: MindMap | null;
@@ -10,6 +15,9 @@ interface MindMapState {
   isAIGenerating: boolean;
   aiModel: AIModel;
   theme: string;
+  history: HistoryState[];
+  historyIndex: number;
+  maxHistorySize: number;
   addMindMap: (title: string, nodes?: MindNode[]) => MindMap;
   updateMindMap: (id: string, updates: Partial<MindMap>) => void;
   deleteMindMap: (id: string) => void;
@@ -23,6 +31,11 @@ interface MindMapState {
   updateSettings: (settings: Partial<MindMapSettings>) => void;
   loadMindMap: (mindMap: MindMap) => void;
   updateNodes: (nodes: MindNode[]) => void;
+  undo: () => void;
+  redo: () => void;
+  saveToHistory: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
 const createDefaultNode = (text: string = '中心主题'): MindNode => ({
@@ -41,6 +54,9 @@ export const useMindMapStore = create<MindMapState>()(
       isAIGenerating: false,
       aiModel: 'openai',
       theme: 'default',
+      history: [],
+      historyIndex: -1,
+      maxHistorySize: 50,
 
       addMindMap: (title: string, nodes?: MindNode[]) => {
         const newMindMap: MindMap = {
@@ -89,14 +105,70 @@ export const useMindMapStore = create<MindMapState>()(
 
       setCurrentMindMap: (id: string | null) => {
         if (id === null) {
-          set({ currentMindMap: null, selectedNodeId: null });
+          set({ currentMindMap: null, selectedNodeId: null, history: [], historyIndex: -1 });
           return;
         }
         const mindMap = get().mindMaps.find((m) => m.id === id);
-        set({ currentMindMap: mindMap || null, selectedNodeId: null });
+        set({ 
+          currentMindMap: mindMap || null, 
+          selectedNodeId: null,
+          history: mindMap ? [{ nodes: JSON.parse(JSON.stringify(mindMap.nodes)), timestamp: Date.now() }] : [],
+          historyIndex: mindMap ? 0 : -1
+        });
+      },
+
+      saveToHistory: () => {
+        const currentMap = get().currentMindMap;
+        if (!currentMap) return;
+
+        const { history, historyIndex, maxHistorySize } = get();
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push({
+          nodes: JSON.parse(JSON.stringify(currentMap.nodes)),
+          timestamp: Date.now(),
+        });
+
+        if (newHistory.length > maxHistorySize) {
+          newHistory.shift();
+        }
+
+        set({
+          history: newHistory,
+          historyIndex: newHistory.length - 1,
+        });
+      },
+
+      undo: () => {
+        const { history, historyIndex, currentMindMap } = get();
+        if (historyIndex > 0 && currentMindMap) {
+          const previousState = history[historyIndex - 1];
+          get().updateNodes(previousState.nodes);
+          set({ historyIndex: historyIndex - 1 });
+        }
+      },
+
+      redo: () => {
+        const { history, historyIndex, currentMindMap } = get();
+        if (historyIndex < history.length - 1 && currentMindMap) {
+          const nextState = history[historyIndex + 1];
+          get().updateNodes(nextState.nodes);
+          set({ historyIndex: historyIndex + 1 });
+        }
+      },
+
+      canUndo: () => {
+        const { historyIndex } = get();
+        return historyIndex > 0;
+      },
+
+      canRedo: () => {
+        const { history, historyIndex } = get();
+        return historyIndex < history.length - 1;
       },
 
       addNode: (parentId: string, text: string) => {
+        get().saveToHistory();
+        
         const addNodeToTree = (
           nodes: MindNode[],
           targetId: string
@@ -132,6 +204,8 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       updateNode: (nodeId: string, text: string) => {
+        get().saveToHistory();
+        
         const updateNodeInTree = (nodes: MindNode[]): MindNode[] => {
           return nodes.map((node) => {
             if (node.id === nodeId) {
@@ -155,6 +229,8 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       deleteNode: (nodeId: string) => {
+        get().saveToHistory();
+        
         const deleteNodeFromTree = (nodes: MindNode[]): MindNode[] => {
           return nodes
             .filter((node) => node.id !== nodeId)
@@ -194,7 +270,12 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       loadMindMap: (mindMap: MindMap) => {
-        set({ currentMindMap: mindMap, selectedNodeId: null });
+        set({ 
+          currentMindMap: mindMap, 
+          selectedNodeId: null,
+          history: [{ nodes: JSON.parse(JSON.stringify(mindMap.nodes)), timestamp: Date.now() }],
+          historyIndex: 0
+        });
       },
 
       updateNodes: (nodes: MindNode[]) => {

@@ -13,7 +13,7 @@ interface CustomNodeData {
 }
 
 export const MindMapNode = memo(({ data, selected }: NodeProps) => {
-  const nodeData = data as CustomNodeData;
+  const nodeData = data as unknown as CustomNodeData;
   const { setSelectedNode, currentMindMap } = useMindMapStore();
   const theme = nodeData.theme || currentMindMap?.settings.theme || 'default';
   const colors = THEME_COLORS[theme as keyof typeof THEME_COLORS] || THEME_COLORS.default;
