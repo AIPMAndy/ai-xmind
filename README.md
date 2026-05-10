@@ -26,7 +26,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/Mindskill/ai-xmind.git
+git clone https://github.com/AIPMAndy/ai-xmind.git
 cd ai-xmind
 ```
 
