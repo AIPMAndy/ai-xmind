@@ -6,10 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "@xyflow/react": "^12.10.2",
     "framer-motion": "^12.38.0",
     "jszip": "^3.10.1",
@@ -23,6 +30,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@tauri-apps/cli": "^2.11.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

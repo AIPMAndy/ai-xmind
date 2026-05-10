@@ -1,0 +1,76 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Mindskill",
+  "version": "0.1.0",
+  "identifier": "com.mindskill.app",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devtools": true
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Mindskill - 智能思维导图",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true,
+        "transparent": false,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://api.deepseek.com https://open.bigmodel.cn https://dashscope.aliyuncs.com https://api.moonshot.cn https://api.siliconflow.cn https://api.openai.com https://api.anthropic.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app", "macos"],
+    "category": "productivity",
+    "shortDescription": "AI智能思维导图工具",
+    "longDescription": "Mindskill是一款结合先进AI技术的智能思维导图工具，支持DeepSeek、GPT、Claude等多种AI模型，帮助用户快速创建、扩展和优化思维导图。",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    }
+  },
+  "plugins": {
+    "fs": {
+      "scope": {
+        "allow": ["$APPDATA/**", "$HOME/**", "$DOCUMENT/**", "$DOWNLOAD/**"],
+        "deny": []
+      }
+    },
+    "dialog": {
+      "all": true
+    },
+    "shell": {
+      "open": true
+    }
+  }
+}
